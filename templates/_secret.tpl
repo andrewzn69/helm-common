@@ -17,11 +17,10 @@ spec:
       credentialsRef:
         secretName: {{ .Values.secrets.infisical.auth.credentialsSecretName }}
         secretNamespace: {{ .Values.secrets.infisical.auth.credentialsSecretNamespace }}
-
-  secretsScope:
-    projectSlug: {{ .Values.secrets.infisical.projectSlug | required ".Values.secrets.infisical.projectSlug is required" }}
-    envSlug: {{ .Values.secrets.infisical.envSlug }}
-    secretsPath: {{ .Values.secrets.infisical.secretsPath | required ".Values.secrets.infisical.secretsPath is required" }}
+      secretsScope:
+        projectSlug: {{ .Values.secrets.infisical.projectSlug | required ".Values.secrets.infisical.projectSlug is required" }}
+        envSlug: {{ .Values.secrets.infisical.envSlug }}
+        secretsPath: {{ .Values.secrets.infisical.secretsPath | required ".Values.secrets.infisical.secretsPath is required" }}
 
   managedKubeSecretReferences:
     - secretName: {{ include "common.fullname" . }}
