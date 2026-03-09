@@ -44,9 +44,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end}}
 
-      {{- if or .Values.initContainers.fixPermissions.enabled .Values.initContainers.custom }}
+      {{- if or (((.Values.initContainers).fixPermissions).enabled) ((.Values.initContainers).custom) }}
       initContainers:
-        {{- if .Values.initContainers.fixPermissions.enabled }}
+        {{- if (((.Values.initContainers).fixPermissions).enabled) }}
         - name: fix-permissions
           image: busybox:latest
           command:
@@ -78,7 +78,7 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
-            {{- if .Values.metrics.enabled }}
+            {{- if ((.Values.metrics).enabled) }}
             - name: metrics
               containerPort: {{ .Values.metrics.port }}
               protocol: TCP
@@ -89,7 +89,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if .Values.probes.liveness.enabled }}
+          {{- if (((.Values.probes).liveness).enabled) }}
           livenessProbe:
             {{- if eq .Values.probes.liveness.type "httpGet" }}
             httpGet:
@@ -111,8 +111,8 @@ spec:
             failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           {{- end }}
 
-          {{- if .Values.probes.readiness.enabled }}
-          livenessProbe:
+          {{- if (((.Values.probes).readiness).enabled) }}
+          readinessProbe:
             {{- if eq .Values.probes.readiness.type "httpGet" }}
             httpGet:
               path: {{ .Values.probes.readiness.httpGet.path }}
@@ -133,8 +133,8 @@ spec:
             failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           {{- end }}
 
-          {{- if .Values.probes.startup.enabled }}
-          livenessProbe:
+          {{- if (((.Values.probes).startup).enabled) }}
+          startupProbe:
             {{- if eq .Values.probes.startup.type "httpGet" }}
             httpGet:
               path: {{ .Values.probes.startup.httpGet.path }}
@@ -160,29 +160,29 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if or .Values.volumes.pvc .Values.volumes.nfs .Values.configMap.enabled }}
+          {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.configMap).enabled) }}
           volumeMounts:
-            {{- range .Values.volumes.pvc }}
+            {{- range ((.Values.volumes).pvc) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
             {{- end }}
-            {{- range .Values.volumes.nfs}}
+            {{- range ((.Values.volumes).nfs) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
             {{- end }}
-            {{- if .Values.configMap.enabled }}
+            {{- if ((.Values.configMap).enabled) }}
             - name: config-files
               mountPath: {{ .Values.configMap.mountPath }}
             {{- end }}
           {{- end }}
 
-        {{- if and .Values.metrics.enabled .Values.metrics.sidecar.enabled }}
+        {{- if and ((.Values.metrics).enabled) (((.Values.metrics).sidecar).enabled) }}
         - name: metrics-exporter
           image: {{ .Values.metrics.sidecar.image }}
           ports:
@@ -194,21 +194,21 @@ spec:
           {{- end }}
         {{- end }}
 
-      {{- if or .Values.volumes.pvc .Values.volumes.nfs .Values.configMap.enabled }}
+      {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.configMap).enabled) }}
       volumes:
-        {{- range .Values.volumes.pvc }}
+        {{- range ((.Values.volumes).pvc) }}
         - name: {{ .name }}
           persistentVolumeClaim:
             claimName: {{ include "common.fullname" $ }}-{{ .name }}
         {{- end}}
-        {{- range .Values.volumes.nfs }}
+        {{- range ((.Values.volumes).nfs) }}
         - name: {{ .name }}
           nfs:
             server: {{ .server }}
             path: {{ .path }}
             readOnly: {{ .readOnly | default false }}
         {{- end }}
-        {{- if .Values.configMap.enabled }}
+        {{- if ((.Values.configMap).enabled) }}
         - name: config-files
           configMap:
             name: {{ include "common.fullname" . }}-files
