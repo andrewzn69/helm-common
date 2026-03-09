@@ -1,5 +1,5 @@
 {{- define "common.cloudflare-ingress" -}}
-{{- if .Values.cloudflare.enabled }}
+{{- if ((.Values.cloudflare).enabled) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
