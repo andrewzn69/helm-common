@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "common.labels" . | nindent 4 }}
-  {{- if .Values.metrics.enabled }}
+  {{- if ((.Values.metrics).enabled) }}
   annotations:
     {{- toYaml .Values.metrics.serviceAnnotations | nindent 4 }}
   {{- end }}
@@ -21,7 +21,7 @@ spec:
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
 
-    {{- if .Values.metrics.enabled }}
+    {{- if ((.Values.metrics).enabled) }}
     - name: metrics
       port: {{ .Values.metrics.port }}
       targetPort: {{ .Values.metrics.port }}
