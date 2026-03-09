@@ -1,5 +1,5 @@
 {{- define "common.secret" -}}
-{{- if .Values.secrets.enabled }}
+{{- if ((.Values.secrets).enabled) }}
 {{- if eq .Values.secrets.type "infisical" }}
 ---
 apiVersion: secrets.infisical.com/v1alpha1
