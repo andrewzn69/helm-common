@@ -1,5 +1,5 @@
 {{- define "common.configmap" -}}
-{{- if .Values.configMap.enabled }}
+{{- if ((.Values.configMap).enabled) }}
 ---
 apiVersion: v1
 kind: ConfigMap
