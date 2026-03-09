@@ -1,5 +1,5 @@
 {{- define "common.httproute" -}}
-{{- if .Values.gateway.enabled }}
+{{- if ((.Values.gateway).enabled) }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
