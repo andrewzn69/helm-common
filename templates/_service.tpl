@@ -6,9 +6,14 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "common.labels" . | nindent 4 }}
-  {{- if ((.Values.metrics).enabled) }}
+  {{- if or ((.Values.metrics).enabled) (.Values.service.annotations) }}
   annotations:
+    {{- if (.Values.service.annotations) }}
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- end }}
+    {{- if ((.Values.metrics).enabled) }}
     {{- toYaml .Values.metrics.serviceAnnotations | nindent 4 }}
+    {{- end }}
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
