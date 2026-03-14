@@ -178,7 +178,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.configMap).enabled) }}
+          {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.volumes).emptyDir) ((.Values.configMap).enabled) }}
           volumeMounts:
             {{- range ((.Values.volumes).pvc) }}
             - name: {{ .name }}
@@ -193,6 +193,10 @@ spec:
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
+            {{- end }}
+            {{- range ((.Values.volumes).emptyDir) }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
             {{- end }}
             {{- if ((.Values.configMap).enabled) }}
             - name: config-files
@@ -212,7 +216,7 @@ spec:
           {{- end }}
         {{- end }}
 
-      {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.configMap).enabled) }}
+      {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.volumes).emptyDir) ((.Values.configMap).enabled) }}
       volumes:
         {{- range ((.Values.volumes).pvc) }}
         - name: {{ .name }}
@@ -225,6 +229,10 @@ spec:
             server: {{ .server }}
             path: {{ .path }}
             readOnly: {{ .readOnly | default false }}
+        {{- end }}
+        {{- range ((.Values.volumes).emptyDir) }}
+        - name: {{ .name }}
+          emptyDir: {}
         {{- end }}
         {{- if ((.Values.configMap).enabled) }}
         - name: config-files
