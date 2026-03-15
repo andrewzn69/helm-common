@@ -12,6 +12,7 @@ spec:
   parentRefs:
     - name: {{ .Values.gateway.gatewayName }}
       namespace: {{ .Values.gateway.gatewayNamespace }}
+      sectionName: {{ .Values.gateway.sectionName | default "https" }}
   hostnames:
     - {{ .Values.gateway.hostname }}
   rules:
