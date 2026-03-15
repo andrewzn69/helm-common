@@ -28,7 +28,7 @@ spec:
         {{- if .Values.podSecurityContext }}
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
         {{- else }}
-        fsGroup: 1000
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
         {{- end }}
@@ -77,8 +77,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
             {{- else}}
             runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
+            runAsUser: 10001
+            runAsGroup: 10001
             allowPrivilegeEscalation: false
             capabilities:
               drop:
