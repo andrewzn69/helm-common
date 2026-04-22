@@ -1,25 +1,28 @@
 {{- define "common.cloudflare-ingress" -}}
-{{- if ((.Values.cloudflare).enabled) }}
+{{- range $name, $component := .Values.components }}
+{{- $ctx := dict "componentName" $name "component" $component "Release" $.Release "Chart" $.Chart "Values" $.Values }}
+{{- if (($component.cloudflare).enabled) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "common.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  name: {{ include "common.component.fullname" $ctx }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "common.labels" . | nindent 4 }}
+    {{- include "common.component.labels" $ctx | nindent 4 }}
 spec:
   ingressClassName: cloudflare-tunnel
   rules:
-    - host: {{ .Values.cloudflare.hostname }}
+    - host: {{ $component.cloudflare.hostname }}
       http:
         paths:
-          - path: {{ .Values.cloudflare.path }}
-            pathType: {{ .Values.cloudflare.pathType }}
+          - path: {{ $component.cloudflare.path }}
+            pathType: {{ $component.cloudflare.pathType }}
             backend:
               service:
-                name: {{ include "common.fullname" . }}
+                name: {{ include "common.component.fullname" $ctx }}
                 port:
-                  number: {{ .Values.service.port }}
+                  number: {{ $component.service.port }}
+{{- end }}
 {{- end }}
 {{- end }}

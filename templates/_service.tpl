@@ -1,48 +1,54 @@
 {{- define "common.service" -}}
+{{- range $name, $component := .Values.components }}
+{{- $ctx := dict "componentName" $name "component" $component "Release" $.Release "Chart" $.Chart "Values" $.Values }}
+{{- if ne (($component.service).enabled | toString) "false" }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "common.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  name: {{ include "common.component.fullname" $ctx }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "common.labels" . | nindent 4 }}
-  {{- if or ((.Values.metrics).enabled) (.Values.service.annotations) }}
+    {{- include "common.component.labels" $ctx | nindent 4 }}
+  {{- if or (($component.metrics).enabled) ($component.service.annotations) }}
   annotations:
-    {{- if (.Values.service.annotations) }}
-    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- if ($component.service.annotations) }}
+    {{- toYaml $component.service.annotations | nindent 4 }}
     {{- end }}
-    {{- if ((.Values.metrics).enabled) }}
-    {{- toYaml .Values.metrics.serviceAnnotations | nindent 4 }}
+    {{- if (($component.metrics).enabled) }}
+    {{- toYaml $component.metrics.serviceAnnotations | nindent 4 }}
     {{- end }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ $component.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
-      protocol: {{ .Values.service.protocol }}
-      name: {{ .Values.service.name }}
-      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) .Values.service.nodePort }}
-      nodePort: {{ .Values.service.nodePort }}
+    - port: {{ $component.service.port }}
+      targetPort: {{ $component.service.targetPort }}
+      protocol: {{ $component.service.protocol }}
+      name: {{ $component.service.name }}
+      {{- if and (or (eq $component.service.type "NodePort") (eq $component.service.type "LoadBalancer")) $component.service.nodePort }}
+      nodePort: {{ $component.service.nodePort }}
       {{- end }}
 
-    {{- if ((.Values.metrics).enabled) }}
+    {{- if (($component.metrics).enabled) }}
     - name: metrics
-      port: {{ .Values.metrics.port }}
-      targetPort: {{ .Values.metrics.port }}
+      port: {{ $component.metrics.port }}
+      targetPort: {{ $component.metrics.port }}
       protocol: TCP
     {{- end }}
 
-    {{- range .Values.service.additionalPorts }}
+    {{- range $component.service.additionalPorts }}
     - name: {{ .name }}
       port: {{ .port }}
       targetPort: {{ .targetPort }}
       protocol: {{ .protocol | default "TCP" }}
-      {{- if and (or (eq $.Values.service.type "NodePort") (eq $.Values.service.type "LoadBalancer")) .nodePort }}
+      {{- if and (or (eq $component.service.type "NodePort") (eq $component.service.type "LoadBalancer")) .nodePort }}
       nodePort: {{ .nodePort }}
       {{- end }}
     {{- end }}
 
   selector:
-    {{- include "common.selectorLabels" . | nindent 4 }}
+    {{- include "common.component.selectorLabels" $ctx | nindent 4 }}
+{{- end }}
+{{- end }}
 {{- end }}

@@ -1,27 +1,30 @@
 {{- define "common.httproute" -}}
-{{- if ((.Values.gateway).enabled) }}
+{{- range $name, $component := .Values.components }}
+{{- $ctx := dict "componentName" $name "component" $component "Release" $.Release "Chart" $.Chart "Values" $.Values }}
+{{- if (($component.gateway).enabled) }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ include "common.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  name: {{ include "common.component.fullname" $ctx }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "common.labels" . | nindent 4 }}
+    {{- include "common.component.labels" $ctx | nindent 4 }}
 spec:
   parentRefs:
-    - name: {{ .Values.gateway.gatewayName }}
-      namespace: {{ .Values.gateway.gatewayNamespace }}
-      sectionName: {{ .Values.gateway.sectionName | default "https" }}
+    - name: {{ $component.gateway.gatewayName }}
+      namespace: {{ $component.gateway.gatewayNamespace }}
+      sectionName: {{ $component.gateway.sectionName | default "https" }}
   hostnames:
-    - {{ .Values.gateway.hostname }}
+    - {{ $component.gateway.hostname }}
   rules:
     - matches:
         - path:
-            type: {{ .Values.gateway.pathType }}
-            value: {{ .Values.gateway.path }}
+            type: {{ $component.gateway.pathType }}
+            value: {{ $component.gateway.path }}
       backendRefs:
-        - name: {{ include "common.fullname" . }}
-          port: {{ .Values.service.port }}
+        - name: {{ include "common.component.fullname" $ctx }}
+          port: {{ $component.service.port }}
+{{- end }}
 {{- end }}
 {{- end }}

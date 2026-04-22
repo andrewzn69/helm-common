@@ -1,80 +1,80 @@
 {{- define "common.deployment" -}}
+{{- range $name, $component := .Values.components }}
+{{- $ctx := dict "componentName" $name "component" $component "Release" $.Release "Chart" $.Chart "Values" $.Values }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "common.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  name: {{ include "common.component.fullname" $ctx }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "common.metadataLabels" . | nindent 4 }}
-  {{- with .Values.commonAnnotations }}
+    {{- include "common.component.labels" $ctx | nindent 4 }}
+  {{- with $component.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ $component.replicaCount | default 1 }}
   selector:
     matchLabels:
-      {{- include "common.selectorLabels" . | nindent 6 }}
+      {{- include "common.component.selectorLabels" $ctx | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "common.metadataLabels" . | nindent 8 }}
-      {{- with .Values.commonAnnotations }}
+        {{- include "common.component.labels" $ctx | nindent 8 }}
+      {{- with $component.commonAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       securityContext:
-        {{- if .Values.podSecurityContext }}
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- if $component.podSecurityContext }}
+        {{- toYaml $component.podSecurityContext | nindent 8 }}
         {{- else }}
         fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
         {{- end }}
 
-      {{- with .Values.nodeSelector }}
+      {{- with $component.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
-      {{- with .Values.affinity }}
+      {{- with $component.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
-      {{- with .Values.tolerations }}
+      {{- with $component.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end}}
 
-      {{- if or (((.Values.initContainers).fixPermissions).enabled) ((.Values.initContainers).custom) }}
+      {{- if or ((($component.initContainers).fixPermissions).enabled) (($component.initContainers).custom) }}
       initContainers:
-        {{- if (((.Values.initContainers).fixPermissions).enabled) }}
+        {{- if ((($component.initContainers).fixPermissions).enabled) }}
         - name: fix-permissions
           image: busybox:latest
           command:
             - sh
             - -c
             - |
-              echo "Fixing permissions for {{ .Values.initContainers.fixPermissions.path }}"
-              chown -R {{ .Values.initContainers.fixPermissions.uid }}:{{ .Values.initContainers.fixPermissions.gid }} {{ .Values.initContainers.fixPermissions.path }}
-              echo "Permissions fixed"
+              chown -R {{ $component.initContainers.fixPermissions.uid }}:{{ $component.initContainers.fixPermissions.gid }} {{ $component.initContainers.fixPermissions.path }}
           volumeMounts:
-            - name: {{ .Values.initContainers.fixPermissions.volumeName }}
-              mountPath: {{ .Values.initContainers.fixPermissions.path }}
+            - name: {{ $component.initContainers.fixPermissions.volumeName }}
+              mountPath: {{ $component.initContainers.fixPermissions.path }}
         {{- end }}
-
-        {{- with .Values.initContainers.custom }}
+        {{- with $component.initContainers.custom }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
 
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ $name }}
           securityContext:
-            {{- if .Values.securityContext }}
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- if $component.securityContext }}
+            {{- toYaml $component.securityContext | nindent 12 }}
             {{- else}}
             runAsNonRoot: true
             runAsUser: 10001
@@ -86,158 +86,170 @@ spec:
             seccompProfile:
               type: RuntimeDefault
             {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.args }}
+          image: "{{ $component.image.repository }}:{{ $component.image.tag }}"
+          imagePullPolicy: {{ $component.image.pullPolicy | default "IfNotPresent" }}
+          {{- with $component.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $component.args }}
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if ne (($component.service).enabled | toString) "false" }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.targetPort }}
+              containerPort: {{ $component.service.targetPort }}
               protocol: TCP
-            {{- if ((.Values.metrics).enabled) }}
+            {{- if (($component.metrics).enabled) }}
             - name: metrics
-              containerPort: {{ .Values.metrics.port }}
+              containerPort: {{ $component.metrics.port }}
               protocol: TCP
             {{- end }}
+          {{- end }}
 
-          {{- with .Values.env }}
+          {{- if or $.Values.globalEnv $component.env }}
           env:
+            {{- with $.Values.globalEnv }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with $component.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
 
-          {{- if (((.Values.probes).liveness).enabled) }}
+          {{- if ((($component.probes).liveness).enabled) }}
           livenessProbe:
-            {{- if eq .Values.probes.liveness.type "httpGet" }}
+            {{- if eq $component.probes.liveness.type "httpGet" }}
             httpGet:
-              path: {{ .Values.probes.liveness.httpGet.path }}
-              port: {{ .Values.probes.liveness.httpGet.port }}
-              scheme: {{ .Values.probes.liveness.httpGet.scheme | default "HTTP" }}
-            {{- else if eq .Values.probes.liveness.type "tcpSocket" }}
+              path: {{ $component.probes.liveness.httpGet.path }}
+              port: {{ $component.probes.liveness.httpGet.port }}
+              scheme: {{ $component.probes.liveness.httpGet.scheme | default "HTTP" }}
+            {{- else if eq $component.probes.liveness.type "tcpSocket" }}
             tcpSocket:
-              port: {{ .Values.probes.liveness.tcpSocket.port }}
-            {{- else if eq .Values.probes.liveness.type "exec" }}
+              port: {{ $component.probes.liveness.tcpSocket.port }}
+            {{- else if eq $component.probes.liveness.type "exec" }}
             exec:
               command:
-                {{- toYaml .Values.probes.liveness.exec.command | nindent 16 }}
+                {{- toYaml $component.probes.liveness.exec.command | nindent 16 }}
             {{- end }}
-            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
-            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
-            successThreshold: {{ .Values.probes.liveness.successThreshold }}
-            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+            initialDelaySeconds: {{ $component.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ $component.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ $component.probes.liveness.timeoutSeconds }}
+            successThreshold: {{ $component.probes.liveness.successThreshold }}
+            failureThreshold: {{ $component.probes.liveness.failureThreshold }}
           {{- end }}
 
-          {{- if (((.Values.probes).readiness).enabled) }}
+          {{- if ((($component.probes).readiness).enabled) }}
           readinessProbe:
-            {{- if eq .Values.probes.readiness.type "httpGet" }}
+            {{- if eq $component.probes.readiness.type "httpGet" }}
             httpGet:
-              path: {{ .Values.probes.readiness.httpGet.path }}
-              port: {{ .Values.probes.readiness.httpGet.port }}
-              scheme: {{ .Values.probes.readiness.httpGet.scheme | default "HTTP" }}
-            {{- else if eq .Values.probes.readiness.type "tcpSocket" }}
+              path: {{ $component.probes.readiness.httpGet.path }}
+              port: {{ $component.probes.readiness.httpGet.port }}
+              scheme: {{ $component.probes.readiness.httpGet.scheme | default "HTTP" }}
+            {{- else if eq $component.probes.readiness.type "tcpSocket" }}
             tcpSocket:
-              port: {{ .Values.probes.readiness.tcpSocket.port }}
-            {{- else if eq .Values.probes.readiness.type "exec" }}
+              port: {{ $component.probes.readiness.tcpSocket.port }}
+            {{- else if eq $component.probes.readiness.type "exec" }}
             exec:
               command:
-                {{- toYaml .Values.probes.readiness.exec.command | nindent 16 }}
+                {{- toYaml $component.probes.readiness.exec.command | nindent 16 }}
             {{- end }}
-            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
-            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
-            successThreshold: {{ .Values.probes.readiness.successThreshold }}
-            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+            initialDelaySeconds: {{ $component.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ $component.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ $component.probes.readiness.timeoutSeconds }}
+            successThreshold: {{ $component.probes.readiness.successThreshold }}
+            failureThreshold: {{ $component.probes.readiness.failureThreshold }}
           {{- end }}
 
-          {{- if (((.Values.probes).startup).enabled) }}
+          {{- if ((($component.probes).startup).enabled) }}
           startupProbe:
-            {{- if eq .Values.probes.startup.type "httpGet" }}
+            {{- if eq $component.probes.startup.type "httpGet" }}
             httpGet:
-              path: {{ .Values.probes.startup.httpGet.path }}
-              port: {{ .Values.probes.startup.httpGet.port }}
-              scheme: {{ .Values.probes.startup.httpGet.scheme | default "HTTP" }}
-            {{- else if eq .Values.probes.startup.type "tcpSocket" }}
+              path: {{ $component.probes.startup.httpGet.path }}
+              port: {{ $component.probes.startup.httpGet.port }}
+              scheme: {{ $component.probes.startup.httpGet.scheme | default "HTTP" }}
+            {{- else if eq $component.probes.startup.type "tcpSocket" }}
             tcpSocket:
-              port: {{ .Values.probes.startup.tcpSocket.port }}
-            {{- else if eq .Values.probes.startup.type "exec" }}
+              port: {{ $component.probes.startup.tcpSocket.port }}
+            {{- else if eq $component.probes.startup.type "exec" }}
             exec:
               command:
-                {{- toYaml .Values.probes.startup.exec.command | nindent 16 }}
+                {{- toYaml $component.probes.startup.exec.command | nindent 16 }}
             {{- end }}
-            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
-            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
-            successThreshold: {{ .Values.probes.startup.successThreshold }}
-            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+            initialDelaySeconds: {{ $component.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ $component.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ $component.probes.startup.timeoutSeconds }}
+            successThreshold: {{ $component.probes.startup.successThreshold }}
+            failureThreshold: {{ $component.probes.startup.failureThreshold }}
           {{- end }}
 
-          {{- with .Values.resources }}
+          {{- with $component.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.volumes).emptyDir) ((.Values.configMap).enabled) }}
+          {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.configMap).enabled) }}
           volumeMounts:
-            {{- range ((.Values.volumes).pvc) }}
+            {{- range (($component.volumes).pvc) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
             {{- end }}
-            {{- range ((.Values.volumes).nfs) }}
+            {{- range (($component.volumes).nfs) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
             {{- end }}
-            {{- range ((.Values.volumes).emptyDir) }}
+            {{- range (($component.volumes).emptyDir) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
             {{- end }}
-            {{- if ((.Values.configMap).enabled) }}
+            {{- if (($component.configMap).enabled) }}
             - name: config-files
-              mountPath: {{ .Values.configMap.mountPath }}
+              mountPath: {{ $component.configMap.mountPath }}
             {{- end }}
           {{- end }}
 
-        {{- if and ((.Values.metrics).enabled) (((.Values.metrics).sidecar).enabled) }}
+        {{- if and (($component.metrics).enabled) ((($component.metrics).sidecar).enabled) }}
         - name: metrics-exporter
-          image: {{ .Values.metrics.sidecar.image }}
+          image: {{ $component.metrics.sidecar.image }}
           ports:
             - name: metrics
-              containerPort: {{ .Values.metrics.sidecar.port }}
-          {{- with .Values.metrics.sidecar.env }}
+              containerPort: {{ $component.metrics.sidecar.port }}
+          {{- with $component.metrics.sidecar.env }}
           env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         {{- end }}
 
-      {{- if or ((.Values.volumes).pvc) ((.Values.volumes).nfs) ((.Values.volumes).emptyDir) ((.Values.configMap).enabled) }}
+      {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.configMap).enabled) }}
       volumes:
-        {{- range ((.Values.volumes).pvc) }}
+        {{- range (($component.volumes).pvc) }}
         - name: {{ .name }}
           persistentVolumeClaim:
-            claimName: {{ include "common.fullname" $ }}-{{ .name }}
+            claimName: {{ include "common.component.fullname" $ctx }}-{{ .name }}
         {{- end}}
-        {{- range ((.Values.volumes).nfs) }}
+        {{- range (($component.volumes).nfs) }}
         - name: {{ .name }}
           nfs:
             server: {{ .server }}
             path: {{ .path }}
             readOnly: {{ .readOnly | default false }}
         {{- end }}
-        {{- range ((.Values.volumes).emptyDir) }}
+        {{- range (($component.volumes).emptyDir) }}
         - name: {{ .name }}
           emptyDir: {}
         {{- end }}
-        {{- if ((.Values.configMap).enabled) }}
+        {{- if (($component.configMap).enabled) }}
         - name: config-files
           configMap:
-            name: {{ include "common.fullname" . }}-files
+            name: {{ include "common.component.fullname" $ctx }}-files
         {{- end }}
       {{- end}}
+{{- end }}
 {{- end }}
