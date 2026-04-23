@@ -16,13 +16,15 @@ spec:
     - host: {{ $component.cloudflare.hostname }}
       http:
         paths:
-          - path: {{ $component.cloudflare.path }}
-            pathType: {{ $component.cloudflare.pathType }}
+          {{- range $component.cloudflare.paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
             backend:
               service:
                 name: {{ include "common.component.fullname" $ctx }}
                 port:
                   number: {{ $component.service.port }}
+          {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
