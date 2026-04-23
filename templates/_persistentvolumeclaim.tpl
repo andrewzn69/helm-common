@@ -1,7 +1,7 @@
 {{- define "common.persistentvolumeclaim" -}}
 {{- range $name, $component := .Values.components }}
 {{- $ctx := dict "componentName" $name "component" $component "Release" $.Release "Chart" $.Chart "Values" $.Values }}
-{{- range $component.volumes.pvc }}
+{{- range (($component.volumes).pvc) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
