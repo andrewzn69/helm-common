@@ -18,13 +18,15 @@ spec:
   hostnames:
     - {{ $component.gateway.hostname }}
   rules:
+    {{- range $component.gateway.paths }}
     - matches:
         - path:
-            type: {{ $component.gateway.pathType }}
-            value: {{ $component.gateway.path }}
+            type: {{ .pathType }}
+            value: {{ .path }}
       backendRefs:
         - name: {{ include "common.component.fullname" $ctx }}
           port: {{ $component.service.port }}
+    {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
