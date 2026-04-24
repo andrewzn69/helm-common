@@ -214,8 +214,8 @@ spec:
               mountPath: {{ $component.configMap.mountPath }}
               {{- if $component.configMap.subPath }}
               subPath: {{ $component.configMap.subPath }}
+              {{- end }}
             {{- end }}
-          {{- end }}
 
         {{- if and (($component.metrics).enabled) ((($component.metrics).sidecar).enabled) }}
         - name: metrics-exporter
