@@ -212,6 +212,8 @@ spec:
             {{- if (($component.configMap).enabled) }}
             - name: config-files
               mountPath: {{ $component.configMap.mountPath }}
+              {{- if $component.configMap.subPath }}
+              subPath: {{ $component.configMap.subPath }}
             {{- end }}
           {{- end }}
 
