@@ -27,6 +27,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      automountServiceAccountToken: {{ $component.automountServiceAccountToken | default false }}
       securityContext:
         {{- if $component.podSecurityContext }}
         {{- toYaml $component.podSecurityContext | nindent 8 }}
