@@ -15,6 +15,8 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ $component.replicaCount | default 1 }}
+  strategy:
+    type: {{ $component.strategy | default "Recreate" }}
   selector:
     matchLabels:
       {{- include "common.component.selectorLabels" $ctx | nindent 6 }}
