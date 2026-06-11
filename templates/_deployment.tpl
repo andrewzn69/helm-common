@@ -14,7 +14,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: {{ $component.replicaCount | default 1 }}
+  replicas: {{ if hasKey $component "replicaCount" }}{{ $component.replicaCount }}{{ else }}1{{ end }}
   strategy:
     type: {{ $component.strategy | default "Recreate" }}
   selector:
