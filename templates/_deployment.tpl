@@ -233,6 +233,10 @@ spec:
           {{- end }}
         {{- end }}
 
+        {{- with ($component.sidecars).custom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
       {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.configMap).enabled) }}
       volumes:
         {{- range (($component.volumes).pvc) }}
