@@ -192,7 +192,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.configMap).enabled) }}
+          {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.volumes).hostPath) (($component.configMap).enabled) }}
           volumeMounts:
             {{- range (($component.volumes).pvc) }}
             - name: {{ .name }}
@@ -209,6 +209,10 @@ spec:
               {{- end }}
             {{- end }}
             {{- range (($component.volumes).emptyDir) }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+            {{- range (($component.volumes).hostPath) }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
             {{- end }}
@@ -237,7 +241,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
 
-      {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.configMap).enabled) }}
+      {{- if or (($component.volumes).pvc) (($component.volumes).nfs) (($component.volumes).emptyDir) (($component.volumes).hostPath) (($component.configMap).enabled) }}
       volumes:
         {{- range (($component.volumes).pvc) }}
         - name: {{ .name }}
@@ -254,6 +258,14 @@ spec:
         {{- range (($component.volumes).emptyDir) }}
         - name: {{ .name }}
           emptyDir: {}
+        {{- end }}
+        {{- range (($component.volumes).hostPath) }}
+        - name: {{ .name }}
+          hostPath:
+            path: {{ .path }}
+            {{- if .type }}
+            type: {{ .type }}
+            {{- end }}
         {{- end }}
         {{- if (($component.configMap).enabled) }}
         - name: config-files
