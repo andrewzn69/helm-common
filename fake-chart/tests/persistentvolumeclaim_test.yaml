@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/main/schema/helm-testsuite.json
+---
+suite: persistentvolumeclaim
+templates:
+  - persistentvolumeclaim.yaml
+release:
+  name: demo
+tests:
+  - it: renders a pvc from a component volume spec
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                mountPath: /config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+                storageClassName: test-class
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PersistentVolumeClaim
+      - equal:
+          path: metadata.name
+          value: demo-app-config
+      - equal:
+          path: metadata.namespace
+          value: test-ns
+      - equal:
+          path: spec.accessModes[0]
+          value: ReadWriteOnce
+      - equal:
+          path: spec.storageClassName
+          value: test-class
+      - equal:
+          path: spec.resources.requests.storage
+          value: 1Gi
+
+  - it: omits storageClassName when it is not set
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                mountPath: /config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+    asserts:
+      - notExists:
+          path: spec.storageClassName
+
+  - it: drops the component suffix when the release name contains it
+    release:
+      name: app
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                mountPath: /config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+    asserts:
+      - equal:
+          path: metadata.name
+          value: app-config
+
+  - it: renders one pvc per entry across all components
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                mountPath: /config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+              - name: cache
+                mountPath: /cache
+                size: 5Gi
+                accessMode: ReadWriteOnce
+        worker:
+          volumes:
+            pvc:
+              - name: data
+                mountPath: /data
+                size: 2Gi
+                accessMode: ReadWriteOnce
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: renders nothing when a component declares no volumes
+    set:
+      namespace: test-ns
+      components:
+        app: {}
+    asserts:
+      - hasDocuments:
+          count: 0
