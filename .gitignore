@@ -1,0 +1,15 @@
+charts/
+Chart.lock
+*.tgz
+
+fake-chart/charts/
+fake-chart/Chart.lock
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+.DS_Store
+Thumbs.db
