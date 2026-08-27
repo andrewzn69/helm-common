@@ -10,6 +10,9 @@ metadata:
   namespace: {{ $.Values.namespace }}
   labels:
     {{- include "common.component.labels" $ctx | nindent 4 }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   accessModes:
     - {{ .accessMode }}
