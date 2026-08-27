@@ -134,6 +134,48 @@ tests:
             app.kubernetes.io/component: worker
         documentIndex: 1
 
+  - it: adds extra labels from the pvc entry
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+                labels:
+                  example.com/one: a
+                  example.com/two: b
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            example.com/one: a
+            example.com/two: b
+            app.kubernetes.io/component: app
+
+  - it: renders only the standard labels when none are set
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+    asserts:
+      - equal:
+          path: metadata.labels
+          value:
+            helm.sh/chart: fake-chart-0.0.0
+            app.kubernetes.io/name: fake-chart
+            app.kubernetes.io/instance: demo
+            app.kubernetes.io/component: app
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/part-of: fake-chart
+
   - it: renders nothing when a component declares no volumes
     set:
       namespace: test-ns
