@@ -14,7 +14,6 @@ tests:
           volumes:
             pvc:
               - name: config
-                mountPath: /config
                 size: 1Gi
                 accessMode: ReadWriteOnce
                 storageClassName: test-class
@@ -47,7 +46,6 @@ tests:
           volumes:
             pvc:
               - name: config
-                mountPath: /config
                 size: 1Gi
                 accessMode: ReadWriteOnce
     asserts:
@@ -64,7 +62,6 @@ tests:
           volumes:
             pvc:
               - name: config
-                mountPath: /config
                 size: 1Gi
                 accessMode: ReadWriteOnce
     asserts:
@@ -72,7 +69,7 @@ tests:
           path: metadata.name
           value: app-config
 
-  - it: renders one pvc per entry across all components
+  - it: renders one pvc per entry, prefixed by its component
     set:
       namespace: test-ns
       components:
@@ -80,29 +77,102 @@ tests:
           volumes:
             pvc:
               - name: config
-                mountPath: /config
                 size: 1Gi
                 accessMode: ReadWriteOnce
               - name: cache
-                mountPath: /cache
                 size: 5Gi
                 accessMode: ReadWriteOnce
         worker:
           volumes:
             pvc:
               - name: data
-                mountPath: /data
                 size: 2Gi
                 accessMode: ReadWriteOnce
     asserts:
       - hasDocuments:
           count: 3
+      - equal:
+          path: metadata.name
+          value: demo-app-config
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: demo-app-cache
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: demo-worker-data
+        documentIndex: 2
+
+  - it: labels each pvc with its own component
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc:
+              - name: config
+                size: 1Gi
+                accessMode: ReadWriteOnce
+        worker:
+          volumes:
+            pvc:
+              - name: data
+                size: 2Gi
+                accessMode: ReadWriteOnce
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            app.kubernetes.io/component: app
+            app.kubernetes.io/instance: demo
+            app.kubernetes.io/name: fake-chart
+        documentIndex: 0
+      - isSubset:
+          path: metadata.labels
+          content:
+            app.kubernetes.io/component: worker
+        documentIndex: 1
 
   - it: renders nothing when a component declares no volumes
     set:
       namespace: test-ns
       components:
         app: {}
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when a component has volumes but no pvc
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            nfs:
+              - name: media
+                mountPath: /media
+                server: 10.0.0.1
+                path: /media
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when the pvc list is empty
+    set:
+      namespace: test-ns
+      components:
+        app:
+          volumes:
+            pvc: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when there are no components
+    set:
+      namespace: test-ns
+      components: {}
     asserts:
       - hasDocuments:
           count: 0
