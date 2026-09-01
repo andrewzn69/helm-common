@@ -54,6 +54,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end}}
 
+      {{- with $component.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       {{- if or ((($component.initContainers).fixPermissions).enabled) (($component.initContainers).custom) }}
       initContainers:
         {{- if ((($component.initContainers).fixPermissions).enabled) }}
