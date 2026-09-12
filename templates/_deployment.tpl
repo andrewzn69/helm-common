@@ -30,6 +30,8 @@ spec:
       {{- end }}
     spec:
       automountServiceAccountToken: {{ $component.automountServiceAccountToken | default false }}
+      # legacy docker link env injection, every service in the namespace lands in every pod
+      enableServiceLinks: {{ $component.enableServiceLinks | default false }}
       securityContext:
         {{- if $component.podSecurityContext }}
         {{- toYaml $component.podSecurityContext | nindent 8 }}
